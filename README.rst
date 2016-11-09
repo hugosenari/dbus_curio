@@ -18,7 +18,7 @@ dbus_curio
      :alt: Updates
 
 
-Pythondbus lib usin Curio (IO lib)
+Pythondbus lib using Curio (IO lib)
 
 
 * Free software: BSD license
