@@ -80,13 +80,12 @@ def header(message_type,
         flags,
         version or 1,
         length,
-        serial or uuid4.int,
-        _fields or [])
+        serial or uuid4().int,
+        _fields)
 
 
-def method_call(path, member,
-        serial=None, length=0, endianness=None, flags=None, version=1,
-        interface=None, signature=None):
+def method_call(path, member, interface=None, signature=None,
+        serial=None, length=0, endianness=None, flags=None, version=1):
     fields = {
         'path': path,
         'member': member,
@@ -100,9 +99,8 @@ def method_call(path, member,
     )
 
 
-def method_return(reply_serial,
-        serial=None, length=0, endianness=None, flags=None, version=1,
-        signature=None):
+def method_return(reply_serial, signature=None,
+        serial=None, length=0, endianness=None, flags=None, version=1):
     fields = {
         'reply_serial': reply_serial,
         'signature': signature
@@ -114,9 +112,8 @@ def method_return(reply_serial,
     )
 
 
-def error(name, reply_serial,
-        serial=None, length=0, endianness=None, flags=None, version=1,
-        signature=None):
+def error(name, reply_serial, signature=None,
+        serial=None, length=0, endianness=None, flags=None, version=1):
     fields = {
         'reply_serial': reply_serial,
         'signature': signature
@@ -128,9 +125,8 @@ def error(name, reply_serial,
     )
 
 
-def signal(path, member,
-        serial=None, length=0, endianness=None, flags=None, version=1,
-        interface=None, signature=None):
+def signal(path, member, interface=None, signature=None,
+        serial=None, length=0, endianness=None, flags=None, version=1):
     fields = {
         'path': path,
         'member': member,
