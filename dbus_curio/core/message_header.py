@@ -22,6 +22,12 @@ Header = namedtuple('Header', [
 class Endianness(Enum):
     LITTLE = b'l'
     BIG = b'B'
+    
+    @attribute
+    def fmt(self):
+        if self == b'l':
+            return b'<' 
+        return b'>'
 
 
 class MessageType(IntEnum):
