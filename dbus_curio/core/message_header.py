@@ -1,7 +1,7 @@
 from collections import namedtuple
 from enum import Enum, IntEnum
 
-HeaderField = namedtuple('HeaderField', [
+Field = namedtuple('HeaderField', [
         'code',
         'value'
     ]
@@ -23,7 +23,7 @@ class Endianness(Enum):
     LITTLE = b'l'
     BIG = b'B'
     
-    @attribute
+    @property
     def fmt(self):
         if self == b'l':
             return b'<' 
@@ -51,7 +51,7 @@ class Flags(IntEnum):
         return Flags.all() ^ self
 
 
-class HeaderFieldCodes(IntEnum):
+class FieldCodes(IntEnum):
     INVALID = 0
     PATH = 1
     INTERFACE = 2
@@ -64,4 +64,80 @@ class HeaderFieldCodes(IntEnum):
     UNIX_FDS = 9
 
     def make(self, value):
-        return HeaderField(self.value, value)
+        return Field(self.value, value)
+
+
+def header(message_type, serial,
+        length=0, endianness=None, flags=None, version=1,
+        **fields):
+    _fields = [
+        HeaderFieldCodes[key.upper()].make(value)
+            for key, value in fields if value]
+    return Header(
+        endianness or Endianness.LITTLE,
+        message_type,
+        flags,
+        version or 1,
+        length,
+        serial,
+        _fields or [])
+
+
+def method_call(serial, path, member,
+        length=0, endianness=None, flags=None, version=1,
+        interface=None, signature=None):
+    fields = {
+        'path': path,
+        'member': member,
+        'interface': interface,
+        'signature': signature
+    }
+    return header(
+        MessageType.METHOD_CALL, serial,
+        length, endianness, flags, version,
+        **fields
+    )
+
+
+def method_return(serial, reply_serial,
+        length=0, endianness=None, flags=None, version=1,
+        signature=None):
+    fields = {
+        'reply_serial': reply_serial,
+        'signature': signature
+    }
+    return header(
+        MessageType.METHOD_RETURN, serial,
+        length, endianness, flags, version,
+        **fields
+    )
+
+
+def error(serial, name, reply_serial,
+        length=0, endianness=None, flags=None, version=1,
+        signature=None):
+    fields = {
+        'reply_serial': reply_serial,
+        'signature': signature
+    }
+    return header(
+        MessageType.ERROR, serial,
+        length, endianness, flags, version,
+        **fields
+    )
+
+
+def signal(path, member,
+        length=0, endianness=None, flags=None, version=1,
+        interface=None, signature=None):
+    fields = {
+        'path': path,
+        'member': member,
+        'interface': interface,
+        'signature': signature
+    }
+    return header(
+        MessageType.SIGNAL, serial,
+        length, endianness, flags, version,
+        **fields
+    )
