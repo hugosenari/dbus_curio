@@ -57,5 +57,5 @@ class HeaderFieldCodes(IntEnum):
     SIGNATURE = 8
     UNIX_FDS = 9
 
-    def new(self, value):
+    def make(self, value):
         return HeaderField(self.value, value)
