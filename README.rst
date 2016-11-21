@@ -25,10 +25,29 @@ Pythondbus lib using Curio (IO lib)
 * Documentation: https://dbus-curio.readthedocs.io.
 
 
-Features
---------
+TODO:
+-----
 
-* TODO
+* Anything;
+* Deserialize messages;
+* High level interfaces;
+* Auth anonymous;
+* Auth DBusSHA1Cookie;
+* Introspection;
+
+
+DONE:
+-----
+
+* Find Session and System bus connection
+* Authenticate with External
+
+
+WHIP:
+-----
+
+* Serialize messages;
+
 
 Credits
 ---------
