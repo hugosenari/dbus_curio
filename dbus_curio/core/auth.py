@@ -10,6 +10,11 @@ class AuthException(Exception):
     pass
 
 
+def _sha1(challenge, pass_, cookie):
+    result = hexlify(sha1(b':'.join([challenge, pass_, cookie])).digest())
+    return b' '.join([pass_, result])
+
+
 def _dbus_gookie(context, uid, challenge):
     file_name = path.expanduser(path.join(COOKIE_DIR, context))
     pass_ = hexlify(sha1(urandom(8)).digest())
@@ -18,14 +23,7 @@ def _dbus_gookie(context, uid, challenge):
             for line in file_:
                 _uid, _time, _cookie = line.split()
                 if uid == _uid:
-                    result = hexlify(
-                        sha1(
-                            b':'.join(
-                                [challenge, pass_, _cookie]
-                            )
-                        ).digest()
-                    )
-                    return b' '.join([pass_, result])
+                    return _sha1(challenge, pass_, _cookie)
             raise AuthException('DBUS_COOKIE_SHA1 cookie not found')
     except IOError as e:
         raise AuthException('DBUS_COOKIE_SHA1 cannot read cookie file', e)
