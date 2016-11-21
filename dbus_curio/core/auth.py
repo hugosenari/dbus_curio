@@ -5,6 +5,7 @@ from os import urandom, path
 
 COOKIE_DIR = '~/.dbus-keyrings'
 
+
 class AuthException(Exception):
     pass
 
@@ -13,7 +14,7 @@ def _dbus_gookie(context, uid, challenge):
     file_name = path.expanduser(path.join(COOKIE_DIR, context))
     pass_ = hexlify(sha1(urandom(8)).digest())
     try:
-        with file_ in open(file_name, r):
+        with open(file_name, 'r') as file_:
             for line in file_:
                 _uid, _time, _cookie = line.split()
                 if uid == _uid:

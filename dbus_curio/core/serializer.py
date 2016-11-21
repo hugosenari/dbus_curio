@@ -1,4 +1,4 @@
-from struct import pack, unpack
+from struct import pack
 
 NULL = b'\x00'
 
@@ -35,11 +35,10 @@ def pad(encoded_len, window=4):
     if encoded_len < window:
         pad = (window - encoded_len) * NULL
     return pad
-    
 
 
 def serialize_str(val, type_of_len=b'u', endianess=b'l'):
-    fmt_e = ENDIANESS[endianess] 
+    fmt_e = ENDIANESS[endianess]
     fmt_l = TRANSLATION[type_of_len]
     b_val = val.encode(encoding='UTF-8') + NULL
     l_b_val = len(b_val)

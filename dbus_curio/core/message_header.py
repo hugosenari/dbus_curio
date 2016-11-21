@@ -1,7 +1,7 @@
-from struct import pack, unpack
+from struct import pack
 from uuid import uuid4
 from collections import namedtuple
-from enum import Enum, IntEnum
+from enum import IntEnum
 
 
 class Field(namedtuple('HeaderField', ['code', 'value'])):
@@ -9,32 +9,29 @@ class Field(namedtuple('HeaderField', ['code', 'value'])):
         pass
 
 
-
-
 class Header(namedtuple('Header', [
-    'endianness', 'message_type', 'flags',
-    'version', 'length', 'serial', 'fields'])):
+        'endianness', 'message_type', 'flags',
+        'version', 'length', 'serial', 'fields'])):
 
     def __bytes__(self):
         header_fmt = self.endianness.fmt + b'bbbbII'
         header_bytes = pack(header_fmt,
-            self.endianness,
-            self.message_type,
-            self.flags,
-            self.version,
-            self.length,
-            self.serial
-        )
+                            self.endianness,
+                            self.message_type,
+                            self.flags,
+                            self.version,
+                            self.length,
+                            self.serial)
         return bytes(header_bytes)
 
 
 class Endianness(IntEnum):
     LITTLE = ord(b'l')
     BIG = ord(b'B')
-    
+
     def __bytes__(self):
         return chr(self.value).encode()
-    
+
     @property
     def fmt(self):
         if self == Endianness.BIG:
@@ -48,7 +45,7 @@ class MessageType(IntEnum):
     METHOD_RETURN = 2
     ERROR = 3
     SIGNAL = 4
-    
+
     def __bytes__(self):
         return bytes([self.value])
 
@@ -64,7 +61,7 @@ class Flags(IntEnum):
 
     def all_but(self):
         return bytes([Flags.all() ^ self])
-    
+
     def __bytes__(self):
         return bytes([self.value])
 
@@ -86,15 +83,14 @@ class FieldCodes(IntEnum):
 
     def __bytes__(self):
         return bytes([self.value])
-        
 
 
 def header(message_type,
-        serial=None, length=0, endianness=None, flags=None, version=1,
-        **fields):
-    _fields = [
-        FieldCodes[key.upper()].make(value)
-            for key, value in fields.items() if value]
+           serial=None, length=0, endianness=None,
+           flags=None, version=1,
+           **fields):
+    _fields = [FieldCodes[key.upper()].make(value)
+               for key, value in fields.items() if value]
     return Header(
         endianness or Endianness.LITTLE,
         message_type,
@@ -106,7 +102,8 @@ def header(message_type,
 
 
 def method_call(path, member, interface=None, signature=None,
-        serial=None, length=0, endianness=None, flags=None, version=1):
+                serial=None, length=0, endianness=None,
+                flags=None, version=1):
     fields = {
         'path': path,
         'member': member,
@@ -121,7 +118,8 @@ def method_call(path, member, interface=None, signature=None,
 
 
 def method_return(reply_serial, signature=None,
-        serial=None, length=0, endianness=None, flags=None, version=1):
+                  serial=None, length=0, endianness=None,
+                  flags=None, version=1):
     fields = {
         'reply_serial': reply_serial,
         'signature': signature
@@ -134,7 +132,8 @@ def method_return(reply_serial, signature=None,
 
 
 def error(name, reply_serial, signature=None,
-        serial=None, length=0, endianness=None, flags=None, version=1):
+          serial=None, length=0, endianness=None,
+          flags=None, version=1):
     fields = {
         'reply_serial': reply_serial,
         'signature': signature
@@ -147,7 +146,8 @@ def error(name, reply_serial, signature=None,
 
 
 def signal(path, member, interface=None, signature=None,
-        serial=None, length=0, endianness=None, flags=None, version=1):
+           serial=None, length=0, endianness=None,
+           flags=None, version=1):
     fields = {
         'path': path,
         'member': member,
