@@ -1,5 +1,6 @@
 from struct import pack, unpack
 
+NULL = b'\x00'
 
 HEADER_SIG = b'yyyyuua(yv)'
 TRANSLATION = {
@@ -29,27 +30,30 @@ def serialize_msg(header, *body):
     return header_bytes
 
 
+def pad(encoded_len, window=4):
+    pad = (encoded_len % window) * NULL
+    if encoded_len < window:
+        pad = (window - encoded_len) * NULL
+    return pad
+    
+
+
 def serialize_str(val, type_of_len=b'u', endianess=b'l'):
     fmt_e = ENDIANESS[endianess] 
     fmt_l = TRANSLATION[type_of_len]
-    b_val = val.encode(encoding='UTF-8')
+    b_val = val.encode(encoding='UTF-8') + NULL
     l_b_val = len(b_val)
+    b_pad = pad(l_b_val)
     b_len = pack(fmt_e + fmt_l, l_b_val)
-    pad = (l_b_val % 4)* b'\x00'
-    if l_b_val < 4:
-        pad = (4 - l_b_val)* b'\x00'
     if fmt_e == b'<':
-        return pad + b_val + b_len
-    return b_len + b_val + pad
+        return b_pad + b_val + b_len
+    return b_len + b_val + b_pad
 
 
 def serialize(signature, *args):
     for c in signature:
         pass
-    # for field in header.fields:
-    #     field.code
-    #     field.value
-    
+
     return b''
 
 
