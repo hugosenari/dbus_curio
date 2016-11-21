@@ -1,34 +1,45 @@
+from struct import pack, unpack
 from uuid import uuid4
 from collections import namedtuple
 from enum import Enum, IntEnum
 
-Field = namedtuple('HeaderField', [
-        'code',
-        'value'
-    ]
-)
 
-Header = namedtuple('Header', [
-        'endianness',
-        'message_type',
-        'flags',
-        'version',
-        'length',
-        'serial',
-        'fields'
-    ]
-)
+class Field(namedtuple('HeaderField', ['code', 'value'])):
+    def __bytes__(self):
+        pass
 
 
-class Endianness(Enum):
-    LITTLE = b'l'
-    BIG = b'B'
+
+
+class Header(namedtuple('Header', [
+    'endianness', 'message_type', 'flags',
+    'version', 'length', 'serial', 'fields'])):
+
+    def __bytes__(self):
+        header_fmt = self.endianness.fmt + b'bbbbII'
+        header_bytes = pack(header_fmt,
+            self.endianness,
+            self.message_type,
+            self.flags,
+            self.version,
+            self.length,
+            self.serial
+        )
+        return bytes(header_bytes)
+
+
+class Endianness(IntEnum):
+    LITTLE = ord(b'l')
+    BIG = ord(b'B')
+    
+    def __bytes__(self):
+        return chr(self.value).encode()
     
     @property
     def fmt(self):
-        if self == b'l':
-            return b'<' 
-        return b'>'
+        if self == Endianness.BIG:
+            return b'>'
+        return b'<'
 
 
 class MessageType(IntEnum):
@@ -37,6 +48,9 @@ class MessageType(IntEnum):
     METHOD_RETURN = 2
     ERROR = 3
     SIGNAL = 4
+    
+    def __bytes__(self):
+        return bytes([self.value])
 
 
 class Flags(IntEnum):
@@ -49,7 +63,10 @@ class Flags(IntEnum):
         return 0x7
 
     def all_but(self):
-        return Flags.all() ^ self
+        return bytes([Flags.all() ^ self])
+    
+    def __bytes__(self):
+        return bytes([self.value])
 
 
 class FieldCodes(IntEnum):
@@ -65,19 +82,23 @@ class FieldCodes(IntEnum):
     UNIX_FDS = 9
 
     def make(self, value):
-        return Field(self.value, value)
+        return Field(self, value)
+
+    def __bytes__(self):
+        return bytes([self.value])
+        
 
 
 def header(message_type,
         serial=None, length=0, endianness=None, flags=None, version=1,
         **fields):
     _fields = [
-        HeaderFieldCodes[key.upper()].make(value)
-            for key, value in fields if value]
+        FieldCodes[key.upper()].make(value)
+            for key, value in fields.items() if value]
     return Header(
         endianness or Endianness.LITTLE,
         message_type,
-        flags,
+        flags or 0,
         version or 1,
         length,
         serial or uuid4().int,

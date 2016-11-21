@@ -12,11 +12,8 @@ Tests for `dbus_curio` module.
 import sys
 import unittest
 
-from dbus_curio import dbus_curio
 
-
-
-class TestDbus_curio(unittest.TestCase):
+class TestDbusCurio(unittest.TestCase):
 
     def setUp(self):
         pass
