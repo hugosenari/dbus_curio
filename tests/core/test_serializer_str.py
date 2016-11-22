@@ -17,18 +17,18 @@ class TestSerializerStr(unittest.TestCase):
         size = b'\x02\x00\x00\x00'
         string = b'eg\x00'
         pad = b'\x00'
-        expected = size + string + pad
+        expected = [size, string, pad]
         target = 'eg'
-        actual = serialize_str(target)
+        actual = list(serialize_str(target))
         self.assertEqual(expected, actual)
-        self.assertEqual(0, len(actual) % 4)
+        self.assertEqual(0, len(b''.join(actual)) % 4)
     
     def test_001_serialize_str_big(self):
         size = b'\x08\x00\x00\x00'
         string = b'eggsspam\x00'
         pad = b'\x00\x00\x00'
-        expected = size + string + pad
+        expected = [size, string, pad]
         target = 'eggsspam'
-        actual = serialize_str(target)
-        self.assertEqual(0, len(actual) % 4)
+        actual = list(serialize_str(target))
+        self.assertEqual(0, len(b''.join(actual)) % 4)
         self.assertEqual(expected, actual)

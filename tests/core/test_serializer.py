@@ -19,5 +19,5 @@ class TestSerializer(unittest.TestCase):
     def test_000_serialize_signal(self):
         expected = b'l\x04\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00'
         target = signal('eggs', 'spam', serial=1)
-        actual = serialize_msg(target)
+        actual = list(serialize_msg(target))
         self.assertIn(expected, actual)

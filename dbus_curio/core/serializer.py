@@ -45,68 +45,59 @@ ENDIANESS = {
 
 
 def pad(encoded_len, window=4):
-    _pad = (window - (encoded_len % window)) * NULL
     if encoded_len < window:
-        _pad = (window - encoded_len) * NULL
-    return _pad
+        return (window - encoded_len) * NULL
+    return (window - (encoded_len % window)) * NULL
 
 
 def serialize_msg(header, *body):
-    header_bytes = bytes(header)
-    body_bytes = serialize(header.signature, *body)
-    return header_bytes + body_bytes
+    for _header in header.encode_dbus():
+        yield _header
+    for _body in serialize(header.signature, *body):
+        yield _body
 
 
 def serialize_str(val, signature=b's', endianess=LITLE_END):
     type_of_len = b'y' if signature == b'g' else b'u'
-    fmt_e = ENDIANESS[endianess]
-    fmt_l = TRANSLATION[type_of_len]
     b_val = val.encode(encoding='UTF-8')
     l_b_val = len(b_val)
-    b_len = pack(fmt_e + fmt_l, l_b_val)
-    b_pad = pad(l_b_val + 1) + NULL  # null-terminated string
-    return b_len + b_val + b_pad
+    yield pack(ENDIANESS[endianess] + TRANSLATION[type_of_len], l_b_val)
+    yield b_val + NULL  # null-terminated string
+    yield pad(l_b_val + 1)  # this 1 stands for null ending
 
 
 def serialize_var(val, signature, endianess=LITLE_END):
-    _signature = serialize_str(signature, b'g', endianess)
-    _val = serialize(signature, val, endianess=endianess)
-    return _signature + _val
+    yield serialize_str(signature, b'g', endianess)
+    yield serialize(signature, val, endianess=endianess)
 
 
-def serialize_struct(val, signture, endianess=LITLE_END):
-    align_pad = ALIGN[b'('] * NULL
-    b_val = b''
+def serialize_struct(val, signature, endianess=LITLE_END):
+    yield ALIGN[b'('] * NULL
     for _val in val:
-        b_val += serialize(signature, _val, endianess=endianess)
-    return  align_pad + b_val
+        yield serialize(signature, _val, endianess=endianess)
 
 
-def serialize_dict(val, signture, endianess=LITLE_END):
-    align_pad = ALIGN[b'{'] * NULL
-    b_val = b''
+def serialize_dict(val, signature, endianess=LITLE_END):
+    yield ALIGN[b'{'] * NULL
     for _key, _val in val.items():
-        b_val += serialize(signature[0], _key, endianess=endianess)
-        b_val += serialize(signature[1], _val, endianess=endianess)
-    return  align_pad + b_val
+        for b_key in serialize(signature[0], _key, endianess=endianess):
+            yield b_key
+        for b_val in serialize(signature[0], _val, endianess=endianess):
+            yield b_val
 
 
-def serialize_list(val, signture, endianess=LITLE_END):    
-    _len = len(val)
-    fmt_e = ENDIANESS[endianess]
-    fmt_l = TRANSLATION[b'u']
-    align_pad = ALIGN[signture[0]] * NULL
-    b_len = pack(fmt_e + fmt_l, l_b_val)
-    b_val = b''
+def serialize_list(val, signature, endianess=LITLE_END):
+    yield pack(ENDIANESS[endianess] + TRANSLATION[b'u'], len(val))
+    yield ALIGN[signature[0]] * NULL
     for _val in val:
-        b_val += serialize(signature, _val, endianess=endianess)
-    return  b_len + align_pad + b_val
+        for b_val in serialize(signature, _val, endianess=endianess):
+            yield b_val
 
 
 def serialize(signature, endianess=LITLE_END, *args):
     for sig in signature:
         pass
-    return b''
+    yield b''
 
 
 def deserialize(signature, endianess=LITLE_END):

@@ -46,20 +46,28 @@ class FieldCodes(IntEnum):
         return bytes([self.value])
 
 
-class Header(namedtuple('Header', [
-        'endianness', 'message_type', 'flags',
-        'version', 'length', 'serial', 'fields'])):
+class ToBytesMixIn(object):
+    def encode_dbus(self, endianness=None):
+        yield b''
 
     def __bytes__(self):
-        header_fmt = self.endianness.fmt + b'bbbbII'
-        header_bytes = pack(header_fmt,
-                            self.endianness,
-                            self.message_type,
-                            self.flags,
-                            self.version,
-                            self.length,
-                            self.serial)
-        return bytes(header_bytes)
+        return bytes(b''.join(self.encode_dbus()))
+
+
+class Header(namedtuple('Header', [
+        'endianness', 'message_type', 'flags',
+        'version', 'length', 'serial', 'fields']), ToBytesMixIn):
+
+    def encode_dbus(self, endianness=None):
+        e = endianness or self.endianness
+        fmt = Endianness.fmt_of(e)
+        yield pack(fmt + b'bbbbII',
+                   self.endianness.value,
+                   self.message_type.value,
+                   self.flags,
+                   self.version,
+                   self.length,
+                   self.serial)
 
     def field(self, code):
         r = [x for x in self.fields if int(code) == x.code]
@@ -105,17 +113,36 @@ class Header(namedtuple('Header', [
 
 
 class Endianness(IntEnum):
-    LITTLE = ord(b'l')
-    BIG = ord(b'B')
+    LITTLE = 108
+    BIG = 66
+
+    def encode_dbus(self, endianness=None):
+        e = endianness or self
+        fmt = Endianness.fmt_of(e)
+        yield pack(fmt + b'b', self.value)
 
     def __bytes__(self):
-        return chr(self.value).encode()
+        return bytes(self.encode_dbus())
 
     @property
     def fmt(self):
         if self == Endianness.BIG:
             return b'>'
         return b'<'
+
+    @staticmethod
+    def of(val):
+        if hasattr(val, 'endianness'):
+            return Endianness.of(val.endianness)
+        if val in (b'B', b'>', Endianness.BIG.value, Endianness.BIG):
+            return Endianness.BIG
+        return Endianness.LITTLE
+
+    @staticmethod
+    def fmt_of(val):
+        if hasattr(val, 'fmt'):
+            return val.fmt
+        return Endianness.of(val).fmt
 
 
 class MessageType(IntEnum):
@@ -125,8 +152,12 @@ class MessageType(IntEnum):
     ERROR = 3
     SIGNAL = 4
 
+    def encode_dbus(self, endianness=None):
+        fmt = Endianness.fmt_of(endianness)
+        yield pack(fmt+b'b', self.value)
+
     def __bytes__(self):
-        return bytes([self.value])
+        return bytes(self.encode_dbus())
 
 
 class Flags(IntEnum):
@@ -141,8 +172,12 @@ class Flags(IntEnum):
     def all_but(self):
         return bytes([Flags.all() ^ self])
 
+    def encode_dbus(self, endianness=None):
+        fmt = Endianness.fmt_of(endianness)
+        yield pack(fmt+b'b', self.value)
+
     def __bytes__(self):
-        return bytes([self.value])
+        return bytes(self.encode_dbus())
 
 
 def header(message_type,
