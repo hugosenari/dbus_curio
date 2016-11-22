@@ -108,6 +108,17 @@ def serialize(signature, endianess, *args):
             elif sig in (b's', b'o', b'g'):
                 for encoded in serialize_str(arg, sig, endianess):
                     yield encoded
+            elif sig.startswith(b'a'):
+                for encoded in serialize_list(arg, sig[1:], endianess):
+                    yield encoded
+            elif sig.startswith(b'('):
+                for encoded in serialize_struct(arg, sig[1:], endianess):
+                    yield encoded
+            elif sig.startswith(b'{'):
+                for encoded in serialize_dict(arg, sig[1:], endianess):
+                    yield encoded
+            else:
+                yield b''
 
 
 def deserialize(signature, endianess=LITLE_END):
