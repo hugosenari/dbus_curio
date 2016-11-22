@@ -18,11 +18,13 @@ TRANSLATION = {
     b'o': b's',
     b'g': b's',
 }
-LITLE_END = b'<'
-BIG_END = b'>'
+LITLE_END = b'l'
+BIG_END = b'B'
+LITLE_END_FMT = b'<'
+BIG_END_FMT = b'>'
 ENDIANESS = {
-    b'l': LITLE_END,
-    b'B': BIG_END
+    LITLE_END: LITLE_END_FMT,
+    BIG_END: BIG_END_FMT
 }
 
 
@@ -39,7 +41,7 @@ def serialize_msg(header, *body):
     return header_bytes + body_bytes
 
 
-def serialize_str(val, signature=b's', endianess=b'l'):
+def serialize_str(val, signature=b's', endianess=LITLE_END):
     type_of_len = b'y' if signature == b'g' else b'u'
     fmt_e = ENDIANESS[endianess]
     fmt_l = TRANSLATION[type_of_len]
@@ -50,19 +52,19 @@ def serialize_str(val, signature=b's', endianess=b'l'):
     return b_len + b_val + b_pad
 
 
-def serialize_var(val, signature, endianess=b'l'):
-    _signature = serialize_str(signature, b'g', endianess=b'l')
-    _val = serialize(signature, val, endianess)
+def serialize_var(val, signature, endianess=LITLE_END):
+    _signature = serialize_str(signature, b'g', endianess)
+    _val = serialize(signature, val, endianess=endianess)
     return _signature + _val
 
 
-def serialize(signature, *args):
+def serialize(signature, endianess=LITLE_END, *args):
     for c in signature:
         pass
     return b''
 
 
-def deserialize(signature, endianess=b'l'):
+def deserialize(signature, endianess=LITLE_END):
     raise SerializeExeption('Deserialize method not implemented')
 
 
