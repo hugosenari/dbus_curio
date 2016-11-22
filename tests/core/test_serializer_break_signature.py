@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-Tests for `dbus_curio.core.serializer.break_signature` function.
+Tests for `dbus_curio.core.signature.break_signature` function.
 """
 
 import sys
 import unittest
 
-from dbus_curio.core.serializer import break_signature
+from dbus_curio.core.signature import break_signature
 
 
 class TestBreakSignature(unittest.TestCase):

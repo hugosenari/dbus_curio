@@ -32,3 +32,10 @@ class TestSerializerStr(unittest.TestCase):
         actual = list(serialize_str(target))
         self.assertEqual(0, len(b''.join(actual)) % 4)
         self.assertEqual(expected, actual)
+
+    def test_009_serialize_string(self):
+        expected = [b'\x0b\x00\x00\x00', b'Hello World\x00',
+                    b'\x00\x00\x00\x00']
+        target = 'Hello World'
+        actual = list(serialize_str(target))
+        self.assertEqual(expected, actual)
