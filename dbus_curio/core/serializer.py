@@ -39,17 +39,21 @@ def serialize_msg(header, *body):
     return header_bytes + body_bytes
 
 
-def serialize_str(val, type_of=b's', endianess=b'l'):
-    type_of_len = b'y' if type_of == b'g' else b'u'
+def serialize_str(val, signature=b's', endianess=b'l'):
+    type_of_len = b'y' if signature == b'g' else b'u'
     fmt_e = ENDIANESS[endianess]
     fmt_l = TRANSLATION[type_of_len]
     b_val = val.encode(encoding='UTF-8')
     l_b_val = len(b_val)
     b_len = pack(fmt_e + fmt_l, l_b_val)
     b_pad = pad(l_b_val + 1) + NULL  # null-terminated string
-    if fmt_e == BIG_END:
-        return b_len + b_pad + b_val[::-1]
     return b_len + b_val + b_pad
+
+
+def serialize_var(val, signature, endianess=b'l'):
+    _signature = serialize_str(signature, b'g', endianess=b'l')
+    _val = serialize(signature, val, endianess)
+    return _signature + _val
 
 
 def serialize(signature, *args):
@@ -58,7 +62,7 @@ def serialize(signature, *args):
     return b''
 
 
-def deserialize(signature=HEADER_SIG, endianess=b'l'):
+def deserialize(signature, endianess=b'l'):
     raise SerializeExeption('Deserialize method not implemented')
 
 

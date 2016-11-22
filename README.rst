@@ -28,12 +28,12 @@ Pythondbus lib using Curio (IO lib)
 TODO:
 -----
 
-* Anything;
 * Deserialize messages;
 * High level interfaces;
 * Auth anonymous;
 * Auth DBusSHA1Cookie;
 * Introspection;
+* Big endian;
 
 
 DONE:
