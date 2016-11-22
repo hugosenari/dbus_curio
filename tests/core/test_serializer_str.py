@@ -13,7 +13,7 @@ from dbus_curio.core.serializer import serialize_str
 
 class TestSerializerStr(unittest.TestCase):
 
-    def test_000_serialize_str(self):
+    def test_000_serialize_str_small(self):
         size = b'\x02\x00\x00\x00'
         string = b'eg\x00'
         pad = b'\x00'
@@ -23,7 +23,7 @@ class TestSerializerStr(unittest.TestCase):
         self.assertEqual(expected, actual)
         self.assertEqual(0, len(actual) % 4)
     
-    def test_001_serialize_str(self):
+    def test_001_serialize_str_big(self):
         size = b'\x08\x00\x00\x00'
         string = b'eggsspam\x00'
         pad = b'\x00\x00\x00'

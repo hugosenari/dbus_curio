@@ -14,7 +14,6 @@ from dbus_curio.core.message_header import \
     method_call, method_return, error, signal
 
 
-
 class TestSerializer(unittest.TestCase):
 
     def test_000_serialize_signal(self):

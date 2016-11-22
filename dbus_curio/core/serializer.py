@@ -26,12 +26,6 @@ ENDIANESS = {
 }
 
 
-def serialize_msg(header, *body):
-    return bytes(header)
-    header_bytes = bytes(header)
-    return header_bytes
-
-
 def pad(encoded_len, window=4):
     pad = (window - (encoded_len % window)) * NULL
     if encoded_len < window:
@@ -39,7 +33,14 @@ def pad(encoded_len, window=4):
     return pad
 
 
-def serialize_str(val, type_of_len=b'u', endianess=b'l'):
+def serialize_msg(header, *body):
+    header_bytes = bytes(header)
+    body_bytes = serialize(header.signature, *body)
+    return header_bytes + body_bytes
+
+
+def serialize_str(val, type_of=b's', endianess=b'l'):
+    type_of_len = b'y' if type_of == b'g' else b'u'
     fmt_e = ENDIANESS[endianess]
     fmt_l = TRANSLATION[type_of_len]
     b_val = val.encode(encoding='UTF-8')
