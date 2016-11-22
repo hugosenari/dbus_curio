@@ -34,6 +34,7 @@ TODO:
 * Auth DBusSHA1Cookie;
 * Introspection;
 * Big endian;
+* Data validation;
 
 
 DONE:
