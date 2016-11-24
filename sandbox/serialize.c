@@ -2,33 +2,56 @@
 #include <gio/gio.h>
 #define MIN_ARRAY_SIZE  128
 
-typedef struct _GMemoryBuffer GMemoryBuffer;
-struct _GMemoryBuffer
-{
-  gsize len;
-  gsize valid_len;
-  gsize pos;
-  gchar *data;
-  GDataStreamByteOrder byte_order;
-};
+
 
 int main()
 {
     GDBusMessage *message;
-    gsize * size;
-    guchar * mbuf = 0;
-    GError * error;
-    GVariant *var = g_variant_new_boolean (TRUE);;
+    gsize size;
+    guchar* mbuf;
+    GError* error;
+    // https://github.com/GNOME/glib/blob/f924d0b1f7d2b019f1abb56685dcfda74266c608/gio/tests/gdbus-serialization.c
+    GVariant *body = g_variant_new ("(sogybnqiuxtd)",
+    //    value 0:    string:      `this is a string'\n
+                          "this is a string",
+    //    value 1:    object_path: `/this/is/a/path'\n
+                          "/this/is/a/path",
+    //    value 2:    signature:   `sad'\n
+                          "sad",
+    //    value 3:    byte:         0x2a\n
+                          42,
+    //    value 4:    bool:         true\n
+                          TRUE,
+    //    value 5:    int16:        -42\n
+                          -42,
+    //    value 6:    uint16:       60000\n
+                          60000,
+    //    value 7:    int32:        -44\n
+                          -44,
+    //    value 8:    uint32:       100000\n
+                          100000,
+    //    value 9:    int64:        -34359738368\n
+                          -G_GINT64_CONSTANT(2)<<34,
+    //    value 10:   uint64:       18446744073709551615\n
+                          G_GUINT64_CONSTANT(0xffffffffffffffff),
+    //    value 11:   double:       42.500000\n";
+                          42.5);
+    error = NULL;
     message = g_dbus_message_new_signal(
                                         "/org/gtk/GDBus/TestObject",
                                         "org.gtk.GDBus.TestInterface",
                                         "GimmeStdout");
-    //g_dbus_message_set_signature(message, "b");
-    //g_dbus_message_set_body(message, var);
+    g_dbus_message_set_serial (message, 0x40);
+    g_dbus_message_set_byte_order (message, G_DBUS_MESSAGE_BYTE_ORDER_LITTLE_ENDIAN);
+    g_dbus_message_set_header (message, G_DBUS_MESSAGE_HEADER_FIELD_SIGNATURE, g_variant_new_signature ("(sogybnqiuxtd)"));
+    g_dbus_message_set_body(message, body);
     mbuf = g_dbus_message_to_blob(message,
-                         size,
+                         &size,
                          G_DBUS_CAPABILITY_FLAGS_NONE,
                          &error);
-    g_print("Hello World\n %s", size);
+    g_print("Message size %u\n", size);
+    for (int i = 0; i < size; i++) {
+        g_print("\\x%02x", mbuf[i]);
+    }
     return 0;
 }
