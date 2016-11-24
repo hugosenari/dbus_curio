@@ -1,3 +1,19 @@
+"""
+This module de/serialize objects from/to dbus wire format.
+
+The spec for this code can be found here:
+https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-marshaling
+
+Also this content helped:
+https://people.gnome.org/~desrt/gvariant-serialisation.pdf
+
+But if you are like me that prefer some samples here they are:
+
+... TODO :P (Nobody is perfect)
+
+
+"""
+
 from struct import pack
 from .signature import break_signature
 
