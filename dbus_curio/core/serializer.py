@@ -51,12 +51,22 @@ To be simple I defined our message body is defined as ``tsogybnqiuxd``:
 \\x00\\x00\\x00\\x00\\xf8\\xff\\xff\\xff\\x00\\x00\\x00\\x00\\x00\\x40\\x45\\x40
 
 
+- ``t`` is UInt64, ``\\xff\\xff\\xff\\xff\\xff\\xff\\xff``
+(18446744073709551615)
+- ``s`` is String, ``\\x10\\x00\\x00\\x00`` UInt32 string len (16),
+``\\x74\\x68\\x69\\x73\\x20\\x69\\x73\\x20\\x61\\x20\\x73\\x74\\x72\\x69\\x6e\\x67\\x00``
+string val ('this is a string\\x00') and \\x00\\x00\\x00 (padding to be
+divisible by 8, 24/8)
+- ``o`` is Object Path, ``\\x0f\\x00\\x00\\x00`` UInt32 Path len (15),
+``x2f\\x74\\x68\\x69\\x73\\x2f\\x69\\x73\\x2f\\x61\\x2f\\x70\\x61\\x74\\x68\\x00``
+path val '/this/is/a/path\\x00' (no padding is required 20/8)
+
+
 Header yyyyuua(yv):
 -------------------
 
 DBus specs define message header as **yyyyuua(yv)** or
-``BYTE, BYTE, BYTE, BYTE, UINT32, UINT32, ARRAY of STRUCT of (BYTE,VARIANT)``
-( https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-messages )::
+``BYTE, BYTE, BYTE, BYTE, UINT32, UINT32, ARRAY of STRUCT of (BYTE,VARIANT)``::
 
     \\x6c\\x04\\x01\\x01\\x60\\x00\\x00\\x00\\x40\\x00\\x00\\x00\\x7c\\x00\\x00\\x00
     \\x08\\x01\\x67\\x00\\x0c\\x74\\x73\\x6f\\x67\\x79\\x62\\x6e\\x71\\x69\\x75\\x78
