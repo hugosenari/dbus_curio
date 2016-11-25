@@ -32,16 +32,16 @@ int main()
                           -44,
     //    value 9:    uint32:       100000\n
                           100000,
-    //    value 10:   int64:        -34359738368\n
+    //    value 10:    int64:        -34359738368\n
                           -G_GINT64_CONSTANT(2)<<34,
     //    value 11:   double:       42.500000\n";
                           42.5
     );
     error = NULL;
     message = g_dbus_message_new_signal(
-                                        "/org/gtk/GDBus/TestObject",
-                                        "org.gtk.GDBus.TestInterface",
-                                        "GimmeStdout");
+                                        "/aaaaaaa/aaaaaaa",
+                                        "bbbbbbbbb.bbbbbbb",
+                                        "cccccccccccccccccc");
     g_dbus_message_set_serial (message, 0x40);
     g_dbus_message_set_byte_order (message, G_DBUS_MESSAGE_BYTE_ORDER_LITTLE_ENDIAN);
     g_dbus_message_set_header (message, G_DBUS_MESSAGE_HEADER_FIELD_SIGNATURE, g_variant_new_signature ("(sogybnqiuxtd)"));
