@@ -125,25 +125,22 @@ DOUB                    \x00\x00\x00\x00
                         \x00\x40\x45\x40
 
 
-PADDING RULES:
---------------
+PADDING:
+--------
 
 There are 3 types of padding rules, ``container``, ``header``, ``body``
 
 
-CONTAINER RULES:
-~~~~~~~~~~~~~~~~
+- Container:
+    - Strings are aligned as multiple of 4
+    - Struct are aligned as multiple of 8
+    - Variant are alig as mutiple of 1
+- Header:
+    - "The length of the header must be a multiple of 8"    
 
 
-HEADER RULES:
-~~~~~~~~~~~~~
-
-
-BODY RULES:
-~~~~~~~~~~~
-
-
-
+- Body:
+    - Is aligned gloabally (message size at that point)
 
 OUTPUT:
 -------
