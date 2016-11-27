@@ -142,7 +142,7 @@ There are 3 types of padding rules, ``container``, ``header``, ``body``
     - "The length of the header must be a multiple of 8".
 - Body:
     - Any value on body is aligned gloabally to message size at that point.
-    - IE see #### after BYTE and before BOOL, glib implementation is:
+    - IE. see #### after BYTE and before BOOL, glib implementation is:
         - before put value see if current size meets the next value align;
         - put \x00 to fix it;
         - put value bytes;
@@ -185,8 +185,8 @@ Glue all things and our message will be sent like this::
 \x00\x40\x45\x40
 
 
-
 """
+
 
 from struct import pack
 from .signature import break_signature
