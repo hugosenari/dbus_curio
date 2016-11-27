@@ -38,7 +38,7 @@ ARRAY
             VAL             \x2f\x61\x61\x61\x61\x61\x61\x61
                             \x2f\x61\x61\x61\x61\x61\x61\x61
                             \x00
-            PADD                \x00\x00\x00\x00\x00\x00\x00
+            ####                \x00\x00\x00\x00\x00\x00\x00
     STRUCT
         BYTE                \x03
         VARIANT
@@ -47,7 +47,7 @@ ARRAY
             VAL             \x63\x63\x63\x63\x63\x63\x63\x63
                             \x63\x63\x63\x63\x63\x63\x63\x63
                             \x63\x63\x00
-            PADD                        \x00\x00\x00\x00\x00
+            ####                        \x00\x00\x00\x00\x00
     STRUCT
         BYTE                \x08
         VARIANT
@@ -56,7 +56,7 @@ ARRAY
             VAL                                 \x74\x73\x6f
                             \x67\x79\x62\x6e\x71\x69\x75\x78
                             \x64\x00
-            PADD                    \x00\x00\x00\x00\x00\x00
+            ####                    \x00\x00\x00\x00\x00\x00
     STRUCT
         BYTE                \x02
         VARIANT
@@ -65,7 +65,7 @@ ARRAY
             VAL             \x62\x62\x62\x62\x62\x62\x62\x62
                             \x62\x2e\x62\x62\x62\x62\x62\x62
                             \x62\x00
-            PADD                    \x00\x00\x00\x00\x00\x00
+            ####                    \x00\x00\x00\x00\x00\x00
 
 
 - Our first byte define endianess ``\\x6c`` ('l', little-endian);
@@ -101,7 +101,7 @@ STRING
                         \x61\x20\x73\x74
                         \x72\x69\x6e\x67
                         \x00
-    PADD                    \x00\x00\x00
+    ####                    \x00\x00\x00
 PATH
     SIZE                \x0f\x00\x00\x00
     VAL                 \x2f\x74\x68\x69
@@ -128,24 +128,31 @@ DOUB                    \x00\x00\x00\x00
 PADDING:
 --------
 
+As you can see above #### is aligment 'hack' to meet dbus requirements.
+
 There are 3 types of padding rules, ``container``, ``header``, ``body``
 
 
 - Container:
-    - Strings are aligned as multiple of 4
-    - Struct are aligned as multiple of 8
-    - Variant are alig as mutiple of 1
+    - Strings are aligned as multiple of 4;
+    - Struct are aligned as multiple of 8;
+    - Variant are aligned as mutiple of 1;
+    - Array aligned as multiple o content type.
 - Header:
-    - "The length of the header must be a multiple of 8"    
-
-
+    - "The length of the header must be a multiple of 8".
 - Body:
-    - Is aligned gloabally (message size at that point)
+    - Any value on body is aligned gloabally to message size at that point.
+    - IE see #### after BYTE and before BOOL, glib implementation is:
+        - before put value see if current size meets the next value align;
+        - put \x00 to fix it;
+        - put value bytes;
+        - https://dbus.freedesktop.org/doc/dbus-specification.html#idm601
+
 
 OUTPUT:
 -------
 
-The glue all things and our message will be sent like this::
+Glue all things and our message will be sent like this::
 
 \x6c\x04\x01\x01\x60\x00\x00\x00
 \x40\x00\x00\x00\x72\x00\x00\x00
