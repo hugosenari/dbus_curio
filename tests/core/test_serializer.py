@@ -69,21 +69,20 @@ class TestSerializer(unittest.TestCase):
 
     def test_009_serialize_string(self):
         expected = [b'\x0b\x00\x00\x00', b'Hello World\x00',
-                    b'\x00\x00\x00\x00']
+                    b'\x00\x00\x00']
         target = 'Hello World'
         actual = list(serialize(b's', b'l', target))
         self.assertEqual(expected, actual)
 
     def test_010_serialize_path(self):
         expected = [b'\x0b\x00\x00\x00', b'Hello World\x00',
-                    b'\x00\x00\x00\x00']
+                    b'\x00\x00\x00']
         target = 'Hello World'
         actual = list(serialize(b'o', b'l', target))
         self.assertEqual(expected, actual)
 
     def test_011_serialize_signature(self):
-        expected = [b'\x0b', b'Hello World\x00',
-                    b'\x00\x00\x00\x00']
+        expected = [b'\x0b', b'Hello World\x00', b'']
         target = 'Hello World'
         actual = list(serialize(b'g', b'l', target))
         self.assertEqual(expected, actual)

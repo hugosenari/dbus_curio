@@ -2,11 +2,32 @@ from struct import pack
 from uuid import uuid4
 from collections import namedtuple
 from enum import IntEnum
+from .serializer import serialize
+
+
+class Variant(namedtuple('Variant', ['signature', 'value'])):
+
+    def encode_dbus(self, endianness=Endianness.LITTLE):
+        for b in serialize(b'g', endianness, self.signature):
+            yield b
+        for b in serialize(self.signature, endianness, self.value):
+            yield b
 
 
 class Field(namedtuple('HeaderField', ['code', 'value'])):
+
+    def encode_dbus(self, endianness=Endianness.LITTLE):
+        struct = (self.code, Variant(FIELD_SIGNATURE[self.code], self.value))
+        for b in serialize(self.signature, endianness, struct):
+            yield b
+
+    @property
+    def signature(self):
+        return bytes(b'(bv)')
+        return bytes(b'(b', FIELD_SIGNATURE[self.code], b')')
+
     def __bytes__(self):
-        pass
+        return bytes(list(self.encode_dbus()))
 
 
 FIELD_SIGNATURE = [
@@ -41,24 +62,19 @@ class FieldCodes(IntEnum):
 
     def make(self, value):
         return Field(self, value)
+    
+    def encode_dbus(self, endianness=Endianness.LITTLE):
+        return bytes([self.value])
 
     def __bytes__(self):
         return bytes([self.value])
 
 
-class ToBytesMixIn(object):
-    def encode_dbus(self, endianness=None):
-        yield b''
-
-    def __bytes__(self):
-        return bytes(b''.join(self.encode_dbus()))
-
-
 class Header(namedtuple('Header', [
         'endianness', 'message_type', 'flags',
-        'version', 'length', 'serial', 'fields']), ToBytesMixIn):
+        'version', 'length', 'serial', 'fields'])):
 
-    def encode_dbus(self, endianness=None):
+    def encode_dbus(self, endianness=Endianness.LITTLE):
         e = endianness or self.endianness
         fmt = Endianness.fmt_of(e)
         yield pack(fmt + b'bbbbII',
@@ -68,9 +84,11 @@ class Header(namedtuple('Header', [
                    self.version,
                    self.length,
                    self.serial)
+        for b in serialize(b'a(yv)', self.fields, endianness):
+            yield b
 
     def field(self, code):
-        r = [x for x in self.fields if int(code) == x.code]
+        r = [x for x in self.fields if int(code) == int(x.code)]
         if not len(r):
             return list(FieldCodes)[int(code)].make(b'')
         return r[0]
@@ -116,7 +134,7 @@ class Endianness(IntEnum):
     LITTLE = 108
     BIG = 66
 
-    def encode_dbus(self, endianness=None):
+    def encode_dbus(self, endianness=Endianness.LITTLE):
         e = endianness or self
         fmt = Endianness.fmt_of(e)
         yield pack(fmt + b'b', self.value)
@@ -152,7 +170,7 @@ class MessageType(IntEnum):
     ERROR = 3
     SIGNAL = 4
 
-    def encode_dbus(self, endianness=None):
+    def encode_dbus(self, endianness=Endianness.LITTLE):
         fmt = Endianness.fmt_of(endianness)
         yield pack(fmt+b'b', self.value)
 
@@ -172,7 +190,7 @@ class Flags(IntEnum):
     def all_but(self):
         return bytes([Flags.all() ^ self])
 
-    def encode_dbus(self, endianness=None):
+    def encode_dbus(self, endianness=Endianness.LITTLE):
         fmt = Endianness.fmt_of(endianness)
         yield pack(fmt+b'b', self.value)
 
@@ -181,7 +199,7 @@ class Flags(IntEnum):
 
 
 def header(message_type,
-           serial=None, length=0, endianness=None,
+           serial=None, length=0, endianness=Endianness.LITTLE,
            flags=None, version=1,
            **fields):
     _fields = [FieldCodes[key.upper()].make(value)
@@ -197,7 +215,7 @@ def header(message_type,
 
 
 def method_call(path, member, interface=None, signature=None,
-                serial=None, length=0, endianness=None,
+                serial=None, length=0, endianness=Endianness.LITTLE,
                 flags=None, version=1):
     fields = {
         'path': path,
@@ -213,7 +231,7 @@ def method_call(path, member, interface=None, signature=None,
 
 
 def method_return(reply_serial, signature=None,
-                  serial=None, length=0, endianness=None,
+                  serial=None, length=0, endianness=Endianness.LITTLE,
                   flags=None, version=1):
     fields = {
         'reply_serial': reply_serial,
@@ -227,7 +245,7 @@ def method_return(reply_serial, signature=None,
 
 
 def error(name, reply_serial, signature=None,
-          serial=None, length=0, endianness=None,
+          serial=None, length=0, endianness=Endianness.LITTLE,
           flags=None, version=1):
     fields = {
         'reply_serial': reply_serial,
@@ -241,7 +259,7 @@ def error(name, reply_serial, signature=None,
 
 
 def signal(path, member, interface=None, signature=None,
-           serial=None, length=0, endianness=None,
+           serial=None, length=0, endianness=Endianness.LITTLE,
            flags=None, version=1):
     fields = {
         'path': path,

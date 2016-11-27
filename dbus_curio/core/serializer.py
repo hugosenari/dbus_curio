@@ -6,10 +6,8 @@ DBus wire format
 This module de/serialize objects from/to dbus wire format.
 
 The spec for this code can be found here:
-https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-marshaling
-
-Also this content helped:
-https://people.gnome.org/~desrt/gvariant-serialisation.pdf
+- https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-marshaling
+- https://github.com/GNOME/glib/blob/master/gio/gdbusmessage.c
 
 But if you are like me that prefer some samples here they are.
 
@@ -219,6 +217,7 @@ ALIGN = {
     b's': 4,
     b'o': 4,
     b'g': 1,
+    b'v': 1,
     b'a': 4,
     b'(': 8,
     b'{': 8,
@@ -234,53 +233,104 @@ ENDIANESS = {
 
 
 def pad(encoded_len, window=4):
-    if encoded_len < window:
-        return (window - encoded_len) * NULL
-    return (window - (encoded_len % window)) * NULL
+    if encoded_len == 0:
+        return window * NULL
+    wanted = ((encoded_len + window - 1.0) / window) * window
+    return int(wanted - encoded_len) * NULL
 
 
 def serialize_msg(header, *body):
-    for _header in header.encode_dbus():
-        yield _header
-    for _body in serialize(header.signature, header.endianness, *body):
-        yield _body
+    size = 0
+    for b in header.encode_dbus():
+        yield b
+        size += len(b)
+    yield pad(size, 8)
+    body_it = serialize_body(size, header.signature, header.endianness, *body)
+    for b in body_it:
+        yield b
+
+
+def serialize_body(header_size, signature, endianess=LITLE_END, *body):
+    size = header_size
+    signature_it = break_signature(signature)
+    for arg in body:
+        sig = next(signature_it)
+        for b in serialize(sig, header.endianness, arg):
+            yield pad(size, ALIGN[sig[0]])
+            yield b
+            size += len(b)
+
+
+def size_of(size, signature=b'u', endianess=LITLE_END):
+    return pack(ENDIANESS[endianess] + TRANSLATION[signature], size)
 
 
 def serialize_str(val, signature=b's', endianess=LITLE_END):
-    type_of_len = b'y' if signature == b'g' else b'u'
+    type_of_len = b'y' if signature in (b'g') else b'u'
     b_val = val.encode(encoding='UTF-8')
     l_b_val = len(b_val)
-    yield pack(ENDIANESS[endianess] + TRANSLATION[type_of_len], l_b_val)
+    yield size_of(l_b_val, type_of_len,endianess)
     yield b_val + NULL  # null-terminated string
-    yield pad(l_b_val + 1)  # + 1 for null ending
+    yield pad(l_b_val + 1) if signature in (b's', b'o') else b''
 
 
 def serialize_var(val, signature, endianess=LITLE_END):
-    yield serialize_str(signature, b'g', endianess)
-    yield serialize(signature, endianess,  val)
+    for b in serialize_str(signature, b'g', endianess):
+        yield b
+    for b in serialize(signature, endianess,  val):
+        yield b
 
 
 def serialize_struct(val, signature, endianess=LITLE_END):
-    yield ALIGN[b'('] * NULL
     for _val in val:
-        yield serialize(signature, _val, endianess=endianess)
+        size = 0
+        for b in serialize(signature, _val, endianess=endianess):
+            yield b
+            size += len(b)
+        yield pad(size, 8)
 
 
 def serialize_dict(val, signature, endianess=LITLE_END):
-    yield ALIGN[b'{'] * NULL
     for _key, _val in val.items():
-        for b_key in serialize(signature[0], endianess,  _val):
-            yield b_key
-        for b_val in serialize(signature[0], endianess,  _val):
-            yield b_val
+        size = 0
+        for b in serialize(signature[0], endianess,  _val):
+            yield b
+            size += len(b)
+        for b_val in serialize(signature[1], endianess,  _val):
+            yield b
+            size += len(b)
+        yield pad(size, 8)
 
 
 def serialize_list(val, signature, endianess=LITLE_END):
-    yield pack(ENDIANESS[endianess] + TRANSLATION[b'u'], len(val))
-    yield ALIGN[signature[0]] * NULL
-    for _val in val:
-        for b_val in serialize(signature, endianess,  _val):
-            yield b_val
+    sig = signature[0]
+    size = len(val)
+    if not size:
+        yield size_of(size, endianess=endianess)
+    elif not sig in b'{(avsgo':
+        yield size_of(size * ALIGN[sig], endianess=endianess)
+        yield pad(ALIGN[b'u'], ALIGN[sig])
+        for v in val:
+            size = 0
+            for b in serialize(signature, endianess,  v):
+                yield b
+    else:
+        bytes_size = 0
+        max_size = 0
+        buf = []
+        for v in val:
+            item_buf = b''
+            for b in serialize(signature, endianess,  v):
+                item_buf += b
+            item_size = len(item_buf)
+            bytes_size += item_size
+            max_size = item_size if item_size > max_size else max_size
+            buf.append(item_buf)
+        yield size_of(bytes_size, endianess=endianess)
+        yield pad(ALIGN[sig], max_size)
+        for b in buf:
+            yield b
+            yield pad(len(b), max_size)
 
 
 def serialize(signature, endianess, *args):
@@ -302,10 +352,10 @@ def serialize(signature, endianess, *args):
                 for encoded in serialize_list(arg, sig[1:], endianess):
                     yield encoded
             elif sig.startswith(b'('):
-                for encoded in serialize_struct(arg, sig[1:], endianess):
+                for encoded in serialize_struct(arg, sig[1:-1], endianess):
                     yield encoded
             elif sig.startswith(b'{'):
-                for encoded in serialize_dict(arg, sig[1:], endianess):
+                for encoded in serialize_dict(arg, sig[1:-1], endianess):
                     yield encoded
             else:
                 yield b''
