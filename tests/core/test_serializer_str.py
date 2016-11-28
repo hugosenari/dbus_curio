@@ -16,7 +16,7 @@ class TestSerializerStr(unittest.TestCase):
     def test_000_serialize_str_small(self):
         size = b'\x02\x00\x00\x00'
         string = b'eg\x00'
-        pad = b'\x00\x00\x00'
+        pad = b'\x00'
         expected = [size, string, pad]
         target = 'eg'
         actual = list(serialize_str(target))

@@ -14,7 +14,7 @@ from dbus_curio.core.serializer import pad
 class TestSerializerPad(unittest.TestCase):
         
     def test_000_pad_empty(self):
-        expected = b'\x00\x00\x00\x00'
+        expected = b''
         target = b''
         actual = pad(len(target))
         self.assertEqual(expected, actual)

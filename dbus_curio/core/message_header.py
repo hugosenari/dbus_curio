@@ -5,6 +5,39 @@ from enum import IntEnum
 from .serializer import serialize
 
 
+class Endianness(IntEnum):
+    LITTLE = 108
+    BIG = 66
+
+    def encode_dbus(self, endianness=None):
+        e = endianness or self
+        fmt = Endianness.fmt_of(e)
+        yield pack(fmt + b'b', self.value)
+
+    def __bytes__(self):
+        return bytes(self.encode_dbus())
+
+    @property
+    def fmt(self):
+        if self == Endianness.BIG:
+            return b'>'
+        return b'<'
+
+    @staticmethod
+    def of(val):
+        if hasattr(val, 'endianness'):
+            return Endianness.of(val.endianness)
+        if val in (b'B', b'>', Endianness.BIG.value, Endianness.BIG):
+            return Endianness.BIG
+        return Endianness.LITTLE
+
+    @staticmethod
+    def fmt_of(val):
+        if hasattr(val, 'fmt'):
+            return val.fmt
+        return Endianness.of(val).fmt
+
+
 class Variant(namedtuple('Variant', ['signature', 'value'])):
 
     def encode_dbus(self, endianness=Endianness.LITTLE):
@@ -62,7 +95,7 @@ class FieldCodes(IntEnum):
 
     def make(self, value):
         return Field(self, value)
-    
+
     def encode_dbus(self, endianness=Endianness.LITTLE):
         return bytes([self.value])
 
@@ -128,39 +161,6 @@ class Header(namedtuple('Header', [
     @property
     def unix_fds(self):
         return self.field(FieldCodes.UNIX_FDS)
-
-
-class Endianness(IntEnum):
-    LITTLE = 108
-    BIG = 66
-
-    def encode_dbus(self, endianness=Endianness.LITTLE):
-        e = endianness or self
-        fmt = Endianness.fmt_of(e)
-        yield pack(fmt + b'b', self.value)
-
-    def __bytes__(self):
-        return bytes(self.encode_dbus())
-
-    @property
-    def fmt(self):
-        if self == Endianness.BIG:
-            return b'>'
-        return b'<'
-
-    @staticmethod
-    def of(val):
-        if hasattr(val, 'endianness'):
-            return Endianness.of(val.endianness)
-        if val in (b'B', b'>', Endianness.BIG.value, Endianness.BIG):
-            return Endianness.BIG
-        return Endianness.LITTLE
-
-    @staticmethod
-    def fmt_of(val):
-        if hasattr(val, 'fmt'):
-            return val.fmt
-        return Endianness.of(val).fmt
 
 
 class MessageType(IntEnum):
