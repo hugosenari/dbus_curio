@@ -234,13 +234,12 @@ ENDIANESS = {
 
 
 def pad(encoded_len, window=4):
-    if not encoded_len:
-        return b''
-    if encoded_len < window:
-        return (window - encoded_len) * NULL
-    else:
-        wanted = ceil(((encoded_len + window - 1) / window) * window)
-        return (wanted - encoded_len) * NULL
+    if encoded_len and encoded_len % window:
+        if encoded_len < window:
+            return (window - encoded_len) * NULL
+        else:
+            return (encoded_len % window) * NULL
+    return b''
 
 
 def serialize_msg(header, *body):
@@ -309,32 +308,28 @@ def serialize_dict(val, signature, endianess=LITLE_END):
 
 
 def serialize_list(val, signature, endianess=LITLE_END):
-    sig = signature[0]
+    sig = bytes([signature[0]])
     size = len(val)
-    if not size:
+    if not val:
         yield size_of(size, endianess=endianess)
     elif sig not in b'{(avsgo':
         yield size_of(size * ALIGN[sig], endianess=endianess)
         yield pad(ALIGN[b'u'], ALIGN[sig])
         for v in val:
-            size = 0
-            for b in serialize(signature, endianess,  v):
+            for b in serialize(sig, endianess,  v):
                 yield b
     else:
         bytes_size = 0
-        max_size = 0
         buf = []
         for v in val:
             it = serialize(signature, endianess,  v)
             item_buf = b''.join(it)
             item_size = len(item_buf)
             bytes_size += item_size
-            max_size = item_size if item_size > max_size else max_size
             buf.append(item_buf)
         yield size_of(bytes_size, endianess=endianess)
         for b in buf:
             yield b
-            yield pad(len(b), max_size)
 
 
 def serialize(signature, endianess, *args):

@@ -26,7 +26,13 @@ class TestSerializerPad(unittest.TestCase):
         self.assertEqual(expected, actual)
         
     def test_002_pad_more(self):
-        expected = b'\x01\x02\x03\x04\x05\x00\x00\x00'
+        expected = b'\x01\x02\x03\x04\x05\x00'
         target = b'\x01\x02\x03\x04\x05'
         actual = target + pad(len(target))
+        self.assertEqual(expected, actual)
+        
+    def test_003_pad_less(self):
+        expected = b'\x01\x02\x03\x04'
+        target = b'\x01\x02\x03\x04'
+        actual = target + pad(len(target), 2)
         self.assertEqual(expected, actual)
