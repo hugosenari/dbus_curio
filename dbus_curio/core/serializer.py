@@ -232,7 +232,7 @@ ALIGN = {
     b'v': 1,
     b'a': 4,
     b'(': 8,
-    b'{': 8,
+    b'{': 8
 }
 LITLE_END = b'l'
 BIG_END = b'B'
