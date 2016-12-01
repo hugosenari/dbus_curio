@@ -126,7 +126,7 @@ DOUB                    \x00\x00\x00\x00
 PADDING:
 --------
 
-As you can see above #### is aligment 'hack' to meet dbus requirements.
+As you can see above #### is alingment 'hack' to meet dbus requirements.
 
 There are 3 types of padding rules, ``container``, ``header``, ``body``
 
@@ -134,8 +134,9 @@ There are 3 types of padding rules, ``container``, ``header``, ``body``
 - Container:
     - Strings are aligned as multiple of 4;
     - Struct are aligned as multiple of 8;
-    - Variant are aligned as mutiple of 1;
+    - Variant are aligned as multiple of 1;
     - Array aligned as multiple o content type.
+        - Last object of array has no padding.
 - Header:
     - "The length of the header must be a multiple of 8".
 - Body:
@@ -187,11 +188,21 @@ Glue all things and our message will be sent like this::
 
 
 from struct import pack
-from math import ceil
+from collections import defaultdict
 from .signature import break_signature
 
 
 NULL = b'\x00'
+EMPTY = b''
+STRING = b's'
+PATH = b'o'
+SIGNATURE = b'g'
+ARRAY = b'a'
+STRUCT = b'('
+DICT = b'{'
+BYTE = b'y'
+UINT32 = b'u'
+CONTAINER = b'{(avsgo'
 TRANSLATION = {
     b'y': b'b',
     b'b': b'I',
@@ -227,28 +238,39 @@ LITLE_END = b'l'
 BIG_END = b'B'
 LITLE_END_FMT = b'<'
 BIG_END_FMT = b'>'
-ENDIANESS = {
-    LITLE_END: LITLE_END_FMT,
-    BIG_END: BIG_END_FMT
-}
+_BIG_END = b'>B'
+endian = lambda k:  BIG_END if k[0] in _BIG_END else LITLE_END 
+_ENDIANESS = {LITLE_END: LITLE_END_FMT, BIG_END: BIG_END_FMT}
+ENDIANESS = defaultdict(lambda:  LITLE_END, _ENDIANESS)
 
 
 def pad(encoded_len, window=4):
     if encoded_len and encoded_len % window:
         if encoded_len < window:
-            return (window - encoded_len) * NULL
+            return NULL * (window - encoded_len) 
         else:
-            return (encoded_len % window) * NULL
-    return b''
+            return NULL * (encoded_len % window)
+    return EMPTY
+
+
+def has_next(it):
+    try:
+        return next(it)
+    except StopIteration:
+        return None
+
+
+def join(val):
+    return EMPTY.join(val)
 
 
 def serialize_msg(header, *body):
-    header_buf = b''.join(header.encode_dbus())
+    header_buf = join(header.encode_dbus())
     size = len(header_buf)
     body_it = serialize_body(size, header.signature, header.endianness, *body)
-    body_buf = b''.join(body_it)
-    body_size = size_of(len(body_buf), endianess=header.endianness)
-    yield b''.join([header_buf[0:3], body_size, header_buf[7:]])
+    body_buf = join(body_it)
+    body_size = serialize_len(len(body_buf), endianess=header.endianness)
+    yield join([header_buf[0:3], body_size, header_buf[7:]])
     yield pad(size, 8)
     yield body_buf
 
@@ -264,21 +286,17 @@ def serialize_body(header_size, signature, endianess=LITLE_END, *body):
             size += len(b)
 
 
-def size_of(size, signature=b'u', endianess=LITLE_END):
-    return pack(ENDIANESS[endianess] + TRANSLATION[signature], size)
-
-
-def serialize_str(val, signature=b's', endianess=LITLE_END):
-    type_of_len = b'y' if signature in (b'g') else b'u'
+def serialize_str(val, signature=STRING, endianess=LITLE_END):
+    type_of_len = BYTE if signature in SIGNATURE else UINT32
     b_val = val.encode(encoding='UTF-8')
     l_b_val = len(b_val)
-    yield size_of(l_b_val, type_of_len, endianess)
+    yield serialize_len(l_b_val, type_of_len, endianess)
     yield b_val + NULL  # null-terminated string
-    yield pad(l_b_val + 1) if signature in (b's', b'o') else b''
+    yield pad(l_b_val + 1) if signature in (STRING, PATH) else EMPTY
 
 
 def serialize_var(val, signature, endianess=LITLE_END):
-    for b in serialize_str(signature, b'g', endianess):
+    for b in serialize_str(signature, SIGNATURE, endianess):
         yield b
     for b in serialize(signature, endianess,  val):
         yield b
@@ -298,10 +316,10 @@ def serialize_struct(val, signature, endianess=LITLE_END):
 def serialize_dict(val, signature, endianess=LITLE_END):
     for _key, _val in val.items():
         size = 0
-        for b in serialize(signature[0], endianess,  _val):
+        for b in serialize(signature[0], endianess,  _key):
             yield b
             size += len(b)
-        for b_val in serialize(signature[1], endianess,  _val):
+        for b in serialize(signature[1], endianess,  _val):
             yield b
             size += len(b)
         yield pad(size, 8)
@@ -309,31 +327,41 @@ def serialize_dict(val, signature, endianess=LITLE_END):
 
 def serialize_list(val, signature, endianess=LITLE_END):
     sig = bytes([signature[0]])
-    size = len(val)
-    if not val:
-        yield size_of(size, endianess=endianess)
-    elif sig not in b'{(avsgo':
-        yield size_of(size * ALIGN[sig], endianess=endianess)
-        yield pad(ALIGN[b'u'], ALIGN[sig])
+    # empty
+    if not val:  
+        yield serialize_len(0, endianess=endianess)
+    # simple type
+    elif sig not in CONTAINER:
+        yield serialize_len(len(val) * ALIGN[sig], endianess=endianess)
+        yield pad(ALIGN[UINT32], ALIGN[sig])
         for v in val:
             for b in serialize(sig, endianess,  v):
                 yield b
+    # complex
     else:
-        bytes_size = 0
         buf = []
-        for v in val:
-            it = serialize(signature, endianess,  v)
-            item_buf = b''.join(it)
-            item_size = len(item_buf)
-            bytes_size += item_size
-            buf.append(item_buf)
-        yield size_of(bytes_size, endianess=endianess)
+        buf_size = 0
+        it = iter(val)
+        v = has_next(it)
+        while v:
+            _next = has_next(it)
+            for item_buf in serialize(signature, endianess,  v):
+                if _next or len(item_buf.strip(NULL)):
+                    buf_size += len(item_buf)
+                    buf.append(item_buf)
+            v = _next
+        yield serialize_len(buf_size, endianess=endianess)
         for b in buf:
             yield b
 
 
+def serialize_len(size, signature=UINT32, endianess=LITLE_END):
+    return pack(ENDIANESS[endianess] + TRANSLATION[signature], size)
+
+
 def serialize(signature, endianess, *args):
-    end = ENDIANESS[endianess]
+    if not args:
+        yield EMPTY
     signature_it = break_signature(signature)
     for arg in args:
         if hasattr(arg, 'encode_dbus'):
@@ -343,21 +371,20 @@ def serialize(signature, endianess, *args):
             sig = next(signature_it)
             fmt = TRANSLATION.get(sig)
             if fmt:
+                end = ENDIANESS[endianess]
                 yield pack(end + fmt, arg)
-            elif sig in (b's', b'o', b'g'):
+            elif sig in (STRING, PATH, SIGNATURE):
                 for encoded in serialize_str(arg, sig, endianess):
                     yield encoded
-            elif sig.startswith(b'a'):
+            elif sig.startswith(ARRAY):
                 for encoded in serialize_list(arg, sig[1:], endianess):
                     yield encoded
-            elif sig.startswith(b'('):
+            elif sig.startswith(STRUCT):
                 for encoded in serialize_struct(arg, sig[1:-1], endianess):
                     yield encoded
-            elif sig.startswith(b'{'):
+            elif sig.startswith(DICT):
                 for encoded in serialize_dict(arg, sig[1:-1], endianess):
                     yield encoded
-    if not len(args):
-        yield b''
 
 
 def deserialize(signature, endianess=LITLE_END):

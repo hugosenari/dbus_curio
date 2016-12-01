@@ -6,7 +6,6 @@ Tests for `dbus_curio.core.serializer.pad` function.
 """
 
 
-import sys
 import unittest
 from dbus_curio.core.serializer import pad
 
