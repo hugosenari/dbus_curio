@@ -194,8 +194,8 @@ from .signature import break_signature
 
 NULL = b'\x00'
 EMPTY = b''
-STRING = b's'
 PATH = b'o'
+STRING = b's'
 SIGNATURE = b'g'
 ARRAY = b'a'
 STRUCT = b'('
